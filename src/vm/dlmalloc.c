@@ -1459,7 +1459,7 @@ DLMALLOC_EXPORT int mspace_mallopt(int, int);
 
 #ifdef _MSC_VER
 #pragma warning( disable : 4146 ) /* no "unsigned" warnings */
-#endif /* _MSC_VER */
+#endif
 #if !NO_MALLOC_STATS
 #include <stdio.h>       /* for printing in malloc_stats */
 #endif /* NO_MALLOC_STATS */
@@ -4104,6 +4104,7 @@ static void add_segment(mstate m, char* tbase, size_t tsize, flag_t mmapped) {
       break;
   }
   assert(nfences >= 2);
+  (void)nfences;  /* silence the unused variable warning */
 
   /* Insert the rest of old top into a bin as an ordinary free chunk */
   if (csp != old_top) {

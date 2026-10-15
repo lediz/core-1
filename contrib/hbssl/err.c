@@ -63,6 +63,12 @@ HB_FUNC( ERR_PRINT_ERRORS )
       hb_errRT_BASE( EG_ARG, 2010, NULL, HB_ERR_FUNCNAME, HB_ERR_ARGS_BASEPARAMS );
 }
 
+HB_FUNC( ERR_CLEAR_ERROR )
+{
+   ERR_clear_error();
+   hb_ret();
+}
+
 HB_FUNC( ERR_GET_ERROR )
 {
    hb_retnint( ERR_get_error() );
@@ -113,7 +119,11 @@ HB_FUNC( ERR_GET_ERROR_LINE )
    const char * file = NULL;
    int          line = 0;
 
+#if OPENSSL_VERSION_NUMBER < 0x30000000L
    hb_retnint( ERR_get_error_line( &file, &line ) );
+#else
+   hb_retni( 0 );
+#endif
 
    hb_storc( file, 1 );
    hb_storni( line, 2 );
@@ -132,20 +142,17 @@ HB_FUNC( ERR_PEEK_ERROR_LINE )
 
 HB_FUNC( ERR_PEEK_LAST_ERROR_LINE )
 {
-#if OPENSSL_VERSION_NUMBER >= 0x00907000L
    const char * file = NULL;
    int          line = 0;
 
+#if OPENSSL_VERSION_NUMBER >= 0x00907000L
    hb_retnint( ERR_peek_last_error_line( &file, &line ) );
+#else
+   hb_retni( -1 );
+#endif
 
    hb_storc( file, 1 );
    hb_storni( line, 2 );
-#else
-   hb_retnint( -1 );
-
-   hb_storc( NULL, 1 );
-   hb_storni( 0, 2 );
-#endif
 }
 
 HB_FUNC( ERR_GET_ERROR_LINE_DATA )
@@ -155,7 +162,11 @@ HB_FUNC( ERR_GET_ERROR_LINE_DATA )
    const char * data  = NULL;
    int          flags = 0;
 
+#if OPENSSL_VERSION_NUMBER < 0x30000000L
    hb_retnint( ERR_get_error_line_data( &file, &line, &data, &flags ) );
+#else
+   hb_retni( 0 );
+#endif
 
    hb_storc( file, 1 );
    hb_storni( line, 2 );
@@ -170,7 +181,11 @@ HB_FUNC( ERR_PEEK_ERROR_LINE_DATA )
    const char * data  = NULL;
    int          flags = 0;
 
+#if OPENSSL_VERSION_NUMBER < 0x30000000L
    hb_retnint( ERR_peek_error_line_data( &file, &line, &data, &flags ) );
+#else
+   hb_retni( 0 );
+#endif
 
    hb_storc( file, 1 );
    hb_storni( line, 2 );
@@ -186,7 +201,11 @@ HB_FUNC( ERR_PEEK_LAST_ERROR_LINE_DATA )
    const char * data  = NULL;
    int          flags = 0;
 
+#if OPENSSL_VERSION_NUMBER < 0x30000000L
    hb_retnint( ERR_peek_last_error_line_data( &file, &line, &data, &flags ) );
+#else
+   hb_retni( 0 );
+#endif
 
    hb_storc( file, 1 );
    hb_storni( line, 2 );

@@ -120,7 +120,12 @@
 
 #if defined( HB_OS_UNIX )
 #  define HB_HAS_UNIX
-#  if ! defined( __WATCOMC__ )
+#  if defined( __WATCOMC__ )
+#     if __WATCOMC__ >= 1300
+#        define HB_HAS_INET_ATON
+#        define HB_HAS_GETHOSTBYADDR
+#     endif
+#  else
 #     define HB_HAS_INET_ATON
 #     define HB_HAS_INET_PTON
 #     define HB_HAS_INET_NTOP
@@ -435,6 +440,15 @@ int hb_socketInit( void ) { return -1; }
 
 void hb_socketCleanup( void ) { ; }
 
+HB_U16 hb_socketNToHS( HB_U16 netshort )
+{
+#if defined( HB_LITTLE_ENDIAN )
+   return HB_SWAP_UINT16( netshort );
+#else
+   return netshort;
+#endif
+}
+
 int hb_socketGetAddrFamily( const void * pSockAddr, unsigned len )
 {
    HB_SYMBOL_UNUSED( pSockAddr );
@@ -646,6 +660,14 @@ int hb_socketSetNoDelay( HB_SOCKET sd, HB_BOOL fNoDelay )
 {
    HB_SYMBOL_UNUSED( sd );
    HB_SYMBOL_UNUSED( fNoDelay );
+   hb_socketSetError( HB_SOCKET_ERR_INVALIDHANDLE );
+   return -1;
+}
+
+int hb_socketSetNoSigPipe( HB_SOCKET sd, HB_BOOL fNoSigPipe )
+{
+   HB_SYMBOL_UNUSED( sd );
+   HB_SYMBOL_UNUSED( fNoSigPipe );
    hb_socketSetError( HB_SOCKET_ERR_INVALIDHANDLE );
    return -1;
 }
@@ -1599,7 +1621,7 @@ static int hb_socketTransType( int type, int *err )
 }
 #endif
 
-static int hb_socketTransFlags( int flags )
+int hb_socketTransFlags( int flags )
 {
    int iResult = 0;
 
@@ -1620,6 +1642,30 @@ static int hb_socketTransFlags( int flags )
 #ifdef MSG_WAITALL
       if( flags & HB_SOCKET_MSG_WAITALL )
          iResult |= MSG_WAITALL;
+#endif
+#ifdef MSG_NOSIGNAL
+      if( flags & HB_SOCKET_MSG_NOSIGNAL )
+         iResult |= MSG_NOSIGNAL;
+#endif
+#ifdef MSG_DONTWAIT
+      if( flags & HB_SOCKET_MSG_DONTWAIT )
+         iResult |= MSG_DONTWAIT;
+#endif
+#ifdef MSG_TRUNC
+      if( flags & HB_SOCKET_MSG_TRUNC )
+         iResult |= MSG_TRUNC;
+#endif
+#ifdef MSG_CTRUNC
+      if( flags & HB_SOCKET_MSG_CTRUNC )
+         iResult |= MSG_CTRUNC;
+#endif
+#ifdef MSG_BCAST
+      if( flags & HB_SOCKET_MSG_BCAST )
+         iResult |= MSG_BCAST;
+#endif
+#ifdef MSG_MCAST
+      if( flags & HB_SOCKET_MSG_MCAST )
+         iResult |= MSG_MCAST;
 #endif
    }
    return iResult;
@@ -2446,7 +2492,9 @@ int hb_socketShutdown( HB_SOCKET sd, int iMode )
       iMode = SO_SND_SHUTDOWN;
    else if( iMode == HB_SOCKET_SHUT_RDWR )
       iMode = SO_RCV_SHUTDOWN | SO_SND_SHUTDOWN;
-#elif defined( __WATCOMC__ )
+#elif defined( __WATCOMC__ ) && ( __WATCOMC__ <= 1290 )
+   /* In WATCOM < 2.0 SHUT_* values are undefined but
+      Harbour's HB_SOCKET_SHUT_* are equal expected values */
    if( iMode == HB_SOCKET_SHUT_RD ||
        iMode == HB_SOCKET_SHUT_WR ||
        iMode == HB_SOCKET_SHUT_RDWR )
@@ -2846,6 +2894,21 @@ int hb_socketSetNoDelay( HB_SOCKET sd, HB_BOOL fNoDelay )
    ret = -1;
 #endif
    return ret;
+}
+
+int hb_socketSetNoSigPipe( HB_SOCKET sd, HB_BOOL fNoSigPipe )
+{
+#if defined( SO_NOSIGPIPE )
+   int val = fNoSigPipe ? 1 : 0, ret;
+   ret = setsockopt( sd, SOL_SOCKET, SO_NOSIGPIPE, ( const char * ) &val, sizeof( val ) );
+   hb_socketSetOsError( ret != -1 ? 0 : HB_SOCK_GETERROR() );
+   return ret;
+#else
+   HB_SYMBOL_UNUSED( sd );
+   HB_SYMBOL_UNUSED( fNoSigPipe );
+   hb_socketSetError( HB_SOCKET_ERR_NOSUPPORT );
+   return -1;
+#endif
 }
 
 /* NOTE: For notes on Windows, see:
